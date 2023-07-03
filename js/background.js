@@ -11,13 +11,17 @@ chrome.storage.sync.get('tc_config', (res) => {
 function getSecureCount() {
     return new Promise((resolve,reject)=>{
         chrome.storage.sync.get('secureCount', (res) => {
-            let defaultSecureCount = 3;
+            let defaultSecureCount = 2; // window不被清理的为3个（2保护+1活跃）
             let secureCount = res.secureCount??defaultSecureCount;
-            if(secureCount < 0) resolve(defaultSecureCount);
+            if(secureCount < 0) secureCount = defaultSecureCount;
+            chrome.storage.sync.set({"secureCount": secureCount}, () => {});
             resolve(secureCount);
         });
     })
 }
+getSecureCount(); // 相当SecureCount值初始化
+
+
 // 传入tab通过ruleList过滤返回过滤后的ruleList
 function matchUrlPromise(tabList) {
     return new Promise((resolve,reject)=>{
@@ -54,8 +58,9 @@ let closeTimerOperator = {
             waitTime -= oneWait;
             // 关闭标签的定时器
             if (waitTime <= 0) {
-                chrome.tabs.remove(tabId)
                 clearInterval(that.timers[tabId])
+                delete that.timers[tabId]
+                chrome.tabs.remove(tabId)
             }
         }, oneWait)
     },
@@ -81,7 +86,7 @@ let tabOperator = {
     getSafeRange() { // 在安全范围内不能被清理
         return new Promise((resolve,reject)=>{
             chrome.storage.sync.get('secureCount', (res) => {
-                let defaultSecureCount = 3;
+                let defaultSecureCount = 2;
                 let secureCount = res.secureCount??defaultSecureCount;
                 if(secureCount < 0) resolve(defaultSecureCount);
                 resolve(secureCount);

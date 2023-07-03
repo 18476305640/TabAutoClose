@@ -61,8 +61,8 @@ $(function() {
     })
     // 安全位
     function count(num) {
-        chrome.storage.sync.get('secureCount', (res) => {
-            let modifiedSecureCount = (res.secureCount??3) + num;
+        chrome.storage.sync.get('secureCount', (res) => {   
+            let modifiedSecureCount = (res.secureCount??10) + num;
             if(modifiedSecureCount < 0) return;
             chrome.storage.sync.set({"secureCount": modifiedSecureCount}, () => {});
             $("#secure-range").val(modifiedSecureCount)

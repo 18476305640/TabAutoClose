@@ -167,4 +167,11 @@ chrome.windows.onFocusChanged.addListener(()=>tabOperator.refreshState()) // win
 chrome.tabs.onCreated.addListener(()=>tabOperator.refreshState()) // tab创建
 // 监听标签关闭-维护tabIdTabObj
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => closeTimerOperator.cancelTimer(tabId));
-
+// 监听选项卡位置改变事件
+chrome.tabs.onMoved.addListener((tabId, moveInfo) =>tabOperator.refreshState());
+// 标签加载完成
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete') {
+        tabOperator.refreshState()
+    }
+});

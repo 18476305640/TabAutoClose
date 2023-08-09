@@ -3,7 +3,7 @@ chrome.storage.sync.get('tc_config', (res) => {
     let configJson = res.tc_config;
     if(configJson == null) {
         chrome.storage.sync.set({"tc_config": JSON.stringify({ retentionRules: [
-            "baidu","google"
+            "www.baidu.com","www.google.com","keyword","search","history"
         ] })}, () => {});
     }
 });
@@ -52,9 +52,14 @@ let closeTimerOperator = {
         let oneWait = 1000;
         let that = this;
         this.timers[tabId] = setInterval(function () {
-            chrome.tabs.executeScript(tabId, {
-                code: `document.title = "${waitTime / 1000} | "+document.title.replace(/^\\d+ \\| /,"");`
-            });
+            // chrome.tabs.executeScript(tabId, {
+            //     code: `document.title = "${waitTime / 1000} | "+document.title.replace(/^\\d+ \\| /,"");`
+            // });
+            chrome.scripting.executeScript({
+                target: {tabId: tabId},
+                func: (remainder)=>{document.title = remainder+" | "+document.title.replace(/^\d+ \| /,"");},
+                args: [waitTime / 1000],
+              });
             waitTime -= oneWait;
             // 关闭标签的定时器
             if (waitTime <= 0) {
@@ -71,8 +76,12 @@ let closeTimerOperator = {
         clearInterval(timer)
         delete this.timers[tabId]
         // 恢复标题
-        chrome.tabs.executeScript(tabId, {
-            code: `document.title = document.title.replace(/^\\d+ \\| /,"");`
+        // chrome.tabs.executeScript(tabId, {
+        //     code: `document.title = document.title.replace(/^\\d+ \\| /,"");`
+        // });
+        chrome.scripting.executeScript({
+            target: {tabId: tabId},
+            func: ()=>{document.title = document.title.replace(/^\d+ \| /,"");}
         });
     }
 

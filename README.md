@@ -2,7 +2,9 @@
 chrome插件-清理用户指定可清理的标签
 
 **安装：**
-开启开发者模式，将文件夹拖进去即可。
+[chrome应用商店](https://chrome.google.com/webstore/detail/tabautoclose/gkcmhaemnhadicgpdfhokobadnknaaka?hl=zh-CN&authuser=0)
+
+文件方式：将代码下载下来，在浏览器插件管理中，开启开发者模式，将文件夹拖进去即可。
 
 **功能：**
 

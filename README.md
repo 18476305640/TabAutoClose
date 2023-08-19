@@ -1,4 +1,4 @@
-# TableClose
+# TabAutoClose
 chrome插件-清理用户指定可清理的标签
 
 **安装：**

@@ -3,7 +3,7 @@ chrome.storage.sync.get('tc_config', (res) => {
     let configJson = res.tc_config;
     if(configJson == null) {
         chrome.storage.sync.set({"tc_config": JSON.stringify({ retentionRules: [
-            "www.baidu.com","www.google.com","keyword","search","history"
+            "www.baidu.com","www.google.com","/search(\\?.*)?$","/history(\\?.*)?$"
         ] })}, () => {});
     }
 });
@@ -32,7 +32,7 @@ function matchUrlPromise(tabList) {
             // 使用规则匹配
             tabList = tabList.filter(tab => {
                 for(let rule of ruleList) {
-                    if(tab.url.includes(rule)) return true;
+                    if( RegExp(rule).test(tab.url) ) return true;
                 }
                 return false;
             })

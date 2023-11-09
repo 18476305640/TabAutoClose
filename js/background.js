@@ -1,33 +1,58 @@
-// 规则为空-初始化
-chrome.storage.sync.get('tc_config', (res) => {
-    let configJson = res.tc_config;
-    if(configJson == null) {
-        chrome.storage.sync.set({"tc_config": JSON.stringify({ retentionRules: [
-            "www.baidu.com","www.google.com","/search(\\?.*)?$","/history(\\?.*)?$"
-        ] })}, () => {});
-    }
-});
-// 前面的安全个数
-function getSecureCount() {
-    return new Promise((resolve,reject)=>{
-        chrome.storage.sync.get('secureCount', (res) => {
-            let defaultSecureCount = 2; // window不被清理的为3个（2保护+1活跃）
-            let secureCount = res.secureCount??defaultSecureCount;
-            if(secureCount < 0) secureCount = defaultSecureCount;
-            chrome.storage.sync.set({"secureCount": secureCount}, () => {});
-            resolve(secureCount);
-        });
-    })
-}
-getSecureCount(); // 相当SecureCount值初始化
 
+
+// 创建一个函数获取想要的配置
+function getStore(key) {
+	return new Promise((resolve,reject)=>{
+		chrome.storage.sync.get(key,(res)=>{
+			resolve(res[key])
+		})
+	})
+}
+function setStore(key,value) {
+	return new Promise((resolve,reject)=>{
+		const obj = {}
+		obj[key] = value
+		chrome.storage.sync.set(obj, () => {
+			resolve(true)
+		});
+	})
+}
+// 使用的storeKeys
+let ConfigKeys = {
+	TC_CONFIG: 'tc_config',
+	SECURE_COUNT: 'secureCount',
+	DELAYED: 'delayed'
+}
+// 规则为空-初始化
+getStore(ConfigKeys.TC_CONFIG).then(value=>{
+    if(value == null) {
+        setStore(ConfigKeys.TC_CONFIG,JSON.stringify({ retentionRules: [
+            "www.baidu.com","www.google.com","/search(\\?.*)?$","/history(\\?.*)?$"
+        ]}))
+    }
+})
+// 安全个数初始化
+getStore(ConfigKeys.SECURE_COUNT).then(value=>{
+    let defaultSecureCount = 2; // window不被清理的为3个（2保护+1活跃）
+	let secureCount = value??defaultSecureCount;
+	if(secureCount < 0) secureCount = defaultSecureCount;
+    setStore(ConfigKeys.SECURE_COUNT,secureCount);
+})
+
+// 定时器时间初始化
+getStore(ConfigKeys.DELAYED).then(value=>{
+    let defaultDelayed = 60; // 默延时关闭时间为60秒
+	let delayed = value??defaultDelayed;
+	if(delayed < 0) delayed = 0;
+    setStore(ConfigKeys.DELAYED,delayed)
+})
 
 // 传入tab通过ruleList过滤返回过滤后的ruleList
 function matchUrlPromise(tabList) {
     return new Promise((resolve,reject)=>{
-        chrome.storage.sync.get('tc_config', (res) => {
+		getStore(ConfigKeys.TC_CONFIG).then(value=>{
             // 获取配置成功
-            let config = res.tc_config == null ? {} : JSON.parse(res.tc_config);
+            let config = value == null ? {} : JSON.parse(value);
             let ruleList = config.retentionRules??[];
             // 使用规则匹配
             tabList = tabList.filter(tab => {
@@ -37,24 +62,29 @@ function matchUrlPromise(tabList) {
                 return false;
             })
             resolve(tabList)
-        });
+        })
     })
 }
+// 延时时间-这里这样写，是为了更快地获取Delayed的值，否则使用getStore会有问题
+let Delayed = {
+    value: 30,
+    refresh() {
+        getStore(ConfigKeys.DELAYED).then(value=>{this.value = value})
+    }
+}
+Delayed.refresh()
 let closeTimerOperator = {
     timers: {
         // tabId: timer
      }, 
     // 添加定时器
-    upsertTimer(tabId) {
+    async upsertTimer(tabId) {
         // alert("添加定时器id="+tabId)
         if(this.timers[tabId] != null) return; // 如果已经存在定时器，忽略
-        let waitTime = 30 * 1000;
-        let oneWait = 1000;
+		let oneWait = 1000; // 固定秒的单位
+        let waitTime = Delayed.value * oneWait;
         let that = this;
         this.timers[tabId] = setInterval(function () {
-            // chrome.tabs.executeScript(tabId, {
-            //     code: `document.title = "${waitTime / 1000} | "+document.title.replace(/^\\d+ \\| /,"");`
-            // });
             chrome.scripting.executeScript({
                 target: {tabId: tabId},
                 func: (remainder)=>{document.title = remainder+" | "+document.title.replace(/^\d+ \| /,"");},
@@ -68,6 +98,7 @@ let closeTimerOperator = {
                 chrome.tabs.remove(tabId)
             }
         }, oneWait)
+        Delayed.refresh()
     },
     // 取消定时器，将定时器关闭且从timers中移除
     cancelTimer(tabId) {
@@ -93,13 +124,13 @@ let tabOperator = {
     },
     activeTab: [], // 放tab
     getSafeRange() { // 在安全范围内不能被清理
-        return new Promise((resolve,reject)=>{
-            chrome.storage.sync.get('secureCount', (res) => {
+        return new Promise( (resolve,reject)=>{
+            getStore(ConfigKeys.SECURE_COUNT).then(value=>{
                 let defaultSecureCount = 2;
-                let secureCount = res.secureCount??defaultSecureCount;
+                let secureCount = value??defaultSecureCount;
                 if(secureCount < 0) resolve(defaultSecureCount);
                 resolve(secureCount);
-            });
+            })
         })
     }, 
     safeRangeArray: [], // 在安全的tab
@@ -158,7 +189,6 @@ let tabOperator = {
                 if(activeTab != null) globalActiveTab.push(activeTab);
                 globalSafeRangeArray.push(...safeRangeArray);
             });
-            
             that.tabs = globalTab;
             that.safeRangeArray = globalSafeRangeArray;
             that.activeTab = globalActiveTab;

@@ -47,6 +47,13 @@
 			font-weight:700;
 			color: #a2a2a2;
 		}
+		.input-desc {
+			border-bottom: 2px solid #a2a2a2;
+			height: 33px;
+			line-height:33px;
+			font-size: 10px;
+			cursor: pointer;
+		}
 
 		.item {
 			border-radius: 0px;
@@ -175,14 +182,14 @@
 	</div>
 	<div id="control">
 		<input type="number" id="secure-range" placeholder="请输入保护前tab个数" />
-		<div>
+		<div class="input-desc">
 			保护前Tab数
 		</div>
 		
 	</div>
 	<div id="control">
 		<input type="number" id="delayed" placeholder="延时关闭时间" title="保护活跃标签前面tab个数" />
-		<div>
+		<div class="input-desc">
 			延时关闭(秒)
 		</div>
 	</div>

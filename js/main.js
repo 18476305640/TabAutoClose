@@ -1,51 +1,32 @@
-// 【store】store操作工具
-function getStore(key) {
-	return new Promise((resolve,reject)=>{
-		chrome.storage.sync.get(key,(res)=>{
-			resolve(res[key])
-		})
-	})
-}
-function setStore(key,value) {
-	return new Promise((resolve,reject)=>{
-		const obj = {}
-		obj[key] = value
-		chrome.storage.sync.set(obj, () => {
-			resolve(true)
-		});
-	})
-}
-// 使用的storeKeys
-let ConfigKeys = {
-	TC_CONFIG: 'tc_config',
-	SECURE_COUNT: 'secureCount',
-	DELAYED: 'delayed'
-}
 // 【页面操作主逻辑】
 
 // 保存配置
-function saveConfig(config) {
-    chrome.storage.sync.set({"tc_config": JSON.stringify(config)}, () => {});
+async function saveConfig(config) {
+    if(!(await setStorePlus(ConfigKeys.TC_CONFIG,config))) {
+        alert("保存失败了，可能是数据过多！")
+    }
 }
 $(function() {
 	// 【规则】
     // 刷新规则列表
     function refreshList(items) {
         $("#show").html('');
+        if(!Array.isArray(items)) return;
         for(let item of items ) {
             $("#show").append(`
                 <p class='item'><span title="${item}">${item}</span><button class='del'>x</button></p>
             `)
-
         }
     }
 
     // 全局config对象
     let config = null;
     // 获取配置-赋于全局变量
-    getStore(ConfigKeys.TC_CONFIG).then(configJson=>{
+    getStorePlus(ConfigKeys.TC_CONFIG).then(configJson=>{
         if(configJson != null) {
-            config = JSON.parse(configJson);
+            config = configJson;
+            // 初始化列表
+            refreshList(config.retentionRules);
         }else{
             // 赋于初始配置
             config = {
@@ -54,16 +35,17 @@ $(function() {
             // 保存配置
             saveConfig(config);
         }
-        // 初始化列表
-        refreshList(config.retentionRules);
     })
     // 点击提交规则处理函数
-    function tcConfig() {
+    function submitSaveRule() {
         // 获取要添加的规则
         let inputRule = $("#rule").val();
-        if(inputRule.trim().length == 0 ) return;
-        // push到全局config对象中
-        config.retentionRules.push(inputRule);
+        // 看添加的是否有效（是否为空）
+        if((inputRule = inputRule.trim()).length == 0 ) return;
+        // 看是否有重复的
+        if(config.retentionRules.includes(inputRule)) return;
+        // push到全局config对象中(使用unshift在前面添加，防止过多，添加后要往下拉才知道是否添加)
+        config.retentionRules.unshift(inputRule);
         // 保存配置
         saveConfig(config);
         // 刷新列表
@@ -72,7 +54,7 @@ $(function() {
         $("#rule").val('')
     }
     // 给提交按钮添加点击事件
-    $("#push").click(tcConfig);
+    $("#push").click(submitSaveRule);
     // 删除
     $("#show").on("click",".del",function(e) {
         let delTarget = $(e.target).parent().find("span").text();
@@ -82,7 +64,7 @@ $(function() {
         // 刷新列表
         refreshList(config.retentionRules);
     })
-	
+
 	// 【回显】
 	// 回显保护secureCount
     getStore(ConfigKeys.SECURE_COUNT).then((value)=>$("#secure-range").val(value))

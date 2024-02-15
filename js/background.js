@@ -1,47 +1,22 @@
 
-
-// 创建一个函数获取想要的配置
-function getStore(key) {
-	return new Promise((resolve,reject)=>{
-		chrome.storage.sync.get(key,(res)=>{
-			resolve(res[key])
-		})
-	})
-}
-function setStore(key,value) {
-	return new Promise((resolve,reject)=>{
-		const obj = {}
-		obj[key] = value
-		chrome.storage.sync.set(obj, () => {
-			resolve(true)
-		});
-	})
-}
-// 使用的storeKeys
-let ConfigKeys = {
-	TC_CONFIG: 'tc_config',
-	SECURE_COUNT: 'secureCount',
-	DELAYED: 'delayed'
-}
+importScripts('./common/store.js','./common/store-keys.js','./common/default-config.js');
 // 规则为空-初始化
-getStore(ConfigKeys.TC_CONFIG).then(value=>{
+getStorePlus(ConfigKeys.TC_CONFIG).then(value=>{
     if(value == null) {
-        setStore(ConfigKeys.TC_CONFIG,JSON.stringify({ retentionRules: [
-            "www.baidu.com","www.google.com","/search(\\?.*)?$","/history(\\?.*)?$"
-        ]}))
+        setStorePlus(ConfigKeys.TC_CONFIG, defaultConfig.TC_CONFIG)
     }
 })
-// 安全个数初始化
+// 安全个数-初始化
 getStore(ConfigKeys.SECURE_COUNT).then(value=>{
-    let defaultSecureCount = 2; // window不被清理的为3个（2保护+1活跃）
+    let defaultSecureCount = defaultConfig.SECURE_COUNT; // window不被清理的为3个（2保护+1活跃）
 	let secureCount = value??defaultSecureCount;
 	if(secureCount < 0) secureCount = defaultSecureCount;
     setStore(ConfigKeys.SECURE_COUNT,secureCount);
 })
 
 // 定时器时间初始化
+let defaultDelayed = defaultConfig.DELAYED; // 默延时关闭时间为60秒
 getStore(ConfigKeys.DELAYED).then(value=>{
-    let defaultDelayed = 60; // 默延时关闭时间为60秒
 	let delayed = value??defaultDelayed;
 	if(delayed < 0) delayed = 0;
     setStore(ConfigKeys.DELAYED,delayed)
@@ -50,9 +25,9 @@ getStore(ConfigKeys.DELAYED).then(value=>{
 // 传入tab通过ruleList过滤返回过滤后的ruleList
 function matchUrlPromise(tabList) {
     return new Promise((resolve,reject)=>{
-		getStore(ConfigKeys.TC_CONFIG).then(value=>{
+		getStorePlus(ConfigKeys.TC_CONFIG).then(value=>{
             // 获取配置成功
-            let config = value == null ? {} : JSON.parse(value);
+            let config = value == null ? {} : value;
             let ruleList = config.retentionRules??[];
             // 使用规则匹配
             tabList = tabList.filter(tab => {
@@ -66,39 +41,57 @@ function matchUrlPromise(tabList) {
     })
 }
 // 延时时间-这里这样写，是为了更快地获取Delayed的值，否则使用getStore会有问题
-let Delayed = {
-    value: 30,
-    refresh() {
-        getStore(ConfigKeys.DELAYED).then(value=>{this.value = value})
+function debounce(func, wait) {
+    var timeout;
+    return function() {
+        var context = this;
+        var args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(function() {
+            func.apply(context, args)
+        }, wait);
     }
 }
-Delayed.refresh()
+
+let Delayed = {
+    value: null,
+    // 防抖更新Delayed.value值
+    debounceUpdate: debounce(updateDelayedValue, 460)
+}
+// 更新Delayed.value值-core
+function updateDelayedValue() {
+    return new Promise((resole,reject)=>{
+        getStore(ConfigKeys.DELAYED).then(_value=>{
+            resole(Delayed.value = _value)
+        } )
+    })
+}
 let closeTimerOperator = {
     timers: {
         // tabId: timer
-     }, 
+     },
     // 添加定时器
     async upsertTimer(tabId) {
         // alert("添加定时器id="+tabId)
         if(this.timers[tabId] != null) return; // 如果已经存在定时器，忽略
-		let oneWait = 1000; // 固定秒的单位
-        let waitTime = Delayed.value * oneWait;
+        let waitTime = Delayed.value; // 秒
+        if(waitTime == null) waitTime = (await updateDelayedValue()) ?? defaultDelayed
         let that = this;
-        this.timers[tabId] = setInterval(function () {
+        this.timers[tabId] = setInterval(()=> {
             chrome.scripting.executeScript({
                 target: {tabId: tabId},
-                func: (remainder)=>{document.title = remainder+" | "+document.title.replace(/^\d+ \| /,"");},
-                args: [waitTime / 1000],
+                func: (arg1)=>{document.title = `${arg1} | ${document.title.replace(/^\d+ \| /,"")}`;},
+                args: [waitTime],
               });
-            waitTime -= oneWait;
+            waitTime--;
             // 关闭标签的定时器
             if (waitTime <= 0) {
                 clearInterval(that.timers[tabId])
                 delete that.timers[tabId]
                 chrome.tabs.remove(tabId)
             }
-        }, oneWait)
-        Delayed.refresh()
+        }, 1000)
+        Delayed.debounceUpdate()
     },
     // 取消定时器，将定时器关闭且从timers中移除
     cancelTimer(tabId) {
@@ -214,3 +207,4 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         tabOperator.refreshState()
     }
 });
+

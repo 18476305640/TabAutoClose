@@ -6,7 +6,9 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>清理tabs</title>
-	<script src="/js/jquery-3.4.1.min.js"></script>
+	<script src="/js/lib/jquery-3.4.1.min.js"></script>
+	<script src="/js/common/store.js"></script>
+	<script src="/js/common/store-keys.js"></script>
 	<script src="/js/main.js" type="module"></script>
 
 	<style>
@@ -34,23 +36,26 @@
 		#control button {
 			cursor: pointer;
 			height: 33px;
-			line-height:33px;
+			line-height: 33px;
 		}
-		#control > *:nth-child(1) {
+
+		#control>*:nth-child(1) {
 			width: 67%;
 		}
-		#control > *:nth-child(2) {
+
+		#control>*:nth-child(2) {
 			width: 33%;
 			display: flex;
 			align-items: stretch;
 			justify-content: space-around;
-			font-weight:700;
+			font-weight: 700;
 			color: #a2a2a2;
 		}
+
 		.input-desc {
 			border-bottom: 2px solid #a2a2a2;
 			height: 33px;
-			line-height:33px;
+			line-height: 33px;
 			font-size: 10px;
 			cursor: pointer;
 		}
@@ -185,7 +190,7 @@
 		<div class="input-desc">
 			保护前Tab数
 		</div>
-		
+
 	</div>
 	<div id="control">
 		<input type="number" id="delayed" placeholder="延时关闭时间" title="保护活跃标签前面tab个数" />

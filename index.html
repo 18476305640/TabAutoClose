@@ -7,8 +7,13 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>清理tabs</title>
 	<script src="/js/lib/jquery-3.4.1.min.js"></script>
+	<script src="/js/common/utils.js"></script>
+	<script src="/js/common/default-config.js"></script>
 	<script src="/js/common/store.js"></script>
 	<script src="/js/common/store-keys.js"></script>
+	<script src="./js/bg-call-server/client.js"></script>
+	<script src="./js/bg-call-server/server.js"></script>
+	<script src="./js/bg-call-server/bg-fun-keys.js"></script>
 	<script src="/js/main.js" type="module"></script>
 
 	<style>
@@ -108,7 +113,7 @@
 			cursor: pointer;
 		}
 
-		.msg {
+		#msg {
 			color: #3c3c3c;
 		}
 
@@ -198,7 +203,7 @@
 			延时关闭(秒)
 		</div>
 	</div>
-	<p class="msg">满足以下规则，自动清理！</p>
+	<p id="msg">满足以下规则(<span class="ruleCount"></span>条)，将自动清理！</p>
 	<div id="show">
 	</div>
 

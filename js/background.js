@@ -1,9 +1,14 @@
 
+
+importScripts('./common/utils.js');
 importScripts('./common/store.js','./common/store-keys.js','./common/default-config.js');
+importScripts("./bg-call-server/server.js","./bg-call-server/client.js","./bg-call-server/bg-fun-keys.js");
+
+
 // 规则为空-初始化
 getStorePlus(ConfigKeys.TC_CONFIG).then(value=>{
     if(value == null) {
-        setStorePlus(ConfigKeys.TC_CONFIG, defaultConfig.TC_CONFIG)
+        setStorePlus(ConfigKeys.TC_CONFIG,defaultConfig.TC_CONFIG)
     }
 })
 // 安全个数-初始化
@@ -22,8 +27,9 @@ getStore(ConfigKeys.DELAYED).then(value=>{
     setStore(ConfigKeys.DELAYED,delayed)
 })
 
+
 // 传入tab通过ruleList过滤返回过滤后的ruleList
-function matchUrlPromise(tabList) {
+function matchUrlPromise(tabList,onTabMismatchedSuccessfully) {
     return new Promise((resolve,reject)=>{
 		getStorePlus(ConfigKeys.TC_CONFIG).then(value=>{
             // 获取配置成功
@@ -34,38 +40,26 @@ function matchUrlPromise(tabList) {
                 for(let rule of ruleList) {
                     if( RegExp(rule).test(tab.url) ) return true;
                 }
+                if(onTabMismatchedSuccessfully != null) onTabMismatchedSuccessfully(tab)
                 return false;
             })
             resolve(tabList)
         })
     })
 }
-// 延时时间-这里这样写，是为了更快地获取Delayed的值，否则使用getStore会有问题
-function debounce(func, wait) {
-    var timeout;
-    return function() {
-        var context = this;
-        var args = arguments;
-        clearTimeout(timeout);
-        timeout = setTimeout(function() {
-            func.apply(context, args)
-        }, wait);
-    }
-}
 
 let Delayed = {
     value: null,
-    // 防抖更新Delayed.value值
-    debounceUpdate: debounce(updateDelayedValue, 460)
+    // 直接刷新value值
+    directRefreshValue: ()=>{
+        return new Promise((resole,reject)=>{
+            getStore(ConfigKeys.DELAYED).then(_value=>{
+                resole(Delayed.value = _value)
+            } )
+        })
+    }
 }
-// 更新Delayed.value值-core
-function updateDelayedValue() {
-    return new Promise((resole,reject)=>{
-        getStore(ConfigKeys.DELAYED).then(_value=>{
-            resole(Delayed.value = _value)
-        } )
-    })
-}
+
 let closeTimerOperator = {
     timers: {
         // tabId: timer
@@ -75,7 +69,8 @@ let closeTimerOperator = {
         // alert("添加定时器id="+tabId)
         if(this.timers[tabId] != null) return; // 如果已经存在定时器，忽略
         let waitTime = Delayed.value; // 秒
-        if(waitTime == null) waitTime = (await updateDelayedValue()) ?? defaultDelayed
+        // 首次初始化Delayed.value在这里
+        if(waitTime == null) waitTime = (await Delayed.directRefreshValue()) ?? defaultDelayed
         let that = this;
         this.timers[tabId] = setInterval(()=> {
             chrome.scripting.executeScript({
@@ -91,7 +86,6 @@ let closeTimerOperator = {
                 chrome.tabs.remove(tabId)
             }
         }, 1000)
-        Delayed.debounceUpdate()
     },
     // 取消定时器，将定时器关闭且从timers中移除
     cancelTimer(tabId) {
@@ -100,9 +94,6 @@ let closeTimerOperator = {
         clearInterval(timer)
         delete this.timers[tabId]
         // 恢复标题
-        // chrome.tabs.executeScript(tabId, {
-        //     code: `document.title = document.title.replace(/^\\d+ \\| /,"");`
-        // });
         chrome.scripting.executeScript({
             target: {tabId: tabId},
             func: ()=>{document.title = document.title.replace(/^\d+ \| /,"");}
@@ -125,7 +116,7 @@ let tabOperator = {
                 resolve(secureCount);
             })
         })
-    }, 
+    },
     safeRangeArray: [], // 在安全的tab
     addTab(tab) {
         this.tabs[tab.id] = tab;
@@ -142,10 +133,10 @@ let tabOperator = {
         // alert("refreshTabHandle")
         // tab有两种状态, 活跃状态 1 与不活跃状态 0
         let noCloseTab = [...this.safeRangeArray,...this.activeTab]
-        let waitCloseTab = this.tabs.filter( tab=> ! noCloseTab.includes(tab)); 
-        let that = this;
+        let waitCloseTab = this.tabs.filter( tab=> ! noCloseTab.includes(tab));
         // 等待关闭的需要满足,不是活跃的不在安全范围,还需要再"满足配置的规则"
-        waitCloseTab = await matchUrlPromise(waitCloseTab)
+        // 如果规则未匹配上，那就向noCloseTab中添加（当存在定时器时，取消定时咕咕）
+        waitCloseTab = await matchUrlPromise(waitCloseTab,(tab)=>noCloseTab.push(tab))
         // alert("需要进入等待关闭的："+JSON.stringify(waitCloseTab))
         noCloseTab.forEach(secureTab=>{
             // 清理定时器
@@ -190,21 +181,54 @@ let tabOperator = {
             // alert("活跃的"+JSON.stringify(globalActiveTab))
             that.refreshTabHandle()
         });
-    }
+    },
 }
+// 防抖调用tabOperator.refreshState
+const debounceRefreshState = debounce(()=>tabOperator.refreshState(),200);
+
+// -- 防抖方式删除规则-让前台调用--
+const waitRemoveRules = [];
+async function removeRulesCore() {
+    const config = await getStorePlus(ConfigKeys.TC_CONFIG)
+    // 倒数据
+    const _waitRemoveRules = []
+    while(waitRemoveRules.length !== 0) _waitRemoveRules.push( waitRemoveRules.pop())
+    // 过滤掉删除的
+    config.retentionRules = config.retentionRules.filter(item => !_waitRemoveRules.includes(item));
+    // 保存修改扣的config配置
+    await setStorePlus(ConfigKeys.TC_CONFIG,config)
+    // 重新刷新tab状态
+    debounceRefreshState()
+}
+const refreshDebounceRemoveRules = debounce(removeRulesCore,1000);
+function debounceRemoveRules(rule) {
+    if(rule == null || rule.trim() === '') return;
+    waitRemoveRules.push(rule.trim());
+    refreshDebounceRemoveRules();
+}
+
 // 触发刷新（refreshState）的一系列方式
-tabOperator.refreshState()
-chrome.tabs.onActivated.addListener(()=>tabOperator.refreshState()); // tab切换
-chrome.windows.onFocusChanged.addListener(()=>tabOperator.refreshState()) // window切换
-chrome.tabs.onCreated.addListener(()=>tabOperator.refreshState()) // tab创建
+debounceRefreshState()
+chrome.tabs.onActivated.addListener(()=>debounceRefreshState()); // tab切换
+chrome.windows.onFocusChanged.addListener(()=>debounceRefreshState()) // window切换
+chrome.tabs.onCreated.addListener(()=>debounceRefreshState()) // tab创建
 // 监听标签关闭-维护tabIdTabObj
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => closeTimerOperator.cancelTimer(tabId));
 // 监听选项卡位置改变事件
-chrome.tabs.onMoved.addListener((tabId, moveInfo) =>tabOperator.refreshState());
+chrome.tabs.onMoved.addListener((tabId, moveInfo) =>debounceRefreshState());
 // 标签加载完成
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete') {
-        tabOperator.refreshState()
-    }
+    if (changeInfo.status === 'complete') debounceRefreshState()
 });
 
+// 将bg-call-server:server中注册处理方法,用来接收index.html->xxx.js调用
+registerBGFun(bgFunKeys.setStorePlus,async (key,value)=>{
+    const result = await setStorePlus(key,value)
+    // 发送消息，完成了setStorePlus，API的内置缺陷，异步方法无法成功响应，所以这里需要发送来进行补尝
+    callBGFun(receptionFunKeys.onCompletedStore,[key,result])
+    // 如果是规则改变了那刷新tab状态
+    if(key === ConfigKeys.TC_CONFIG) debounceRefreshState()
+    return result;
+})
+registerBGFun(bgFunKeys.refreshDelayedValue,Delayed.directRefreshValue)
+registerBGFun(bgFunKeys.debounceRemoveRules,debounceRemoveRules)

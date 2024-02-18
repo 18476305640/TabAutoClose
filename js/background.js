@@ -72,13 +72,19 @@ let closeTimerOperator = {
         // 首次初始化Delayed.value在这里
         if(waitTime == null) waitTime = (await Delayed.directRefreshValue()) ?? defaultDelayed
         let that = this;
-        this.timers[tabId] = setInterval(()=> {
+        // 向tab title设置剩余时间
+        function setRemainder(time) {
             chrome.scripting.executeScript({
                 target: {tabId: tabId},
                 func: (arg1)=>{document.title = `${arg1} | ${document.title.replace(/^\d+ \| /,"")}`;},
-                args: [waitTime],
+                args: [time],
               });
-            waitTime--;
+        }
+        // 初始设置剩余时间
+        setRemainder(waitTime)
+        this.timers[tabId] = setInterval(()=> {
+            // 剩余时间改变动态显示
+            setRemainder(--waitTime)
             // 关闭标签的定时器
             if (waitTime <= 0) {
                 clearInterval(that.timers[tabId])

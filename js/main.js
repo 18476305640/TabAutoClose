@@ -40,6 +40,31 @@ $(function () {
         // 该函数可能被后台js触发调用
         config.retentionRules = items
     }
+    // 保存规则
+    async function getRetentionRules() {
+        // 从配置中重新获取一次，防止还没有获取，而导致规则丢失
+        config = await getStorePlus(ConfigKeys.TC_CONFIG)
+        return config.retentionRules
+    }
+    window.getRetentionRules = getRetentionRules
+    // 保存配置(其它js中调用)
+    async function saveRetentionRules(rules,isAppend = false) {
+        // 有效条数
+        let count = 0;
+        const allRule = (await getRetentionRules()) ?? []
+        if(isAppend) {
+            const newRules = rules.filter(rule=>!allRule.includes(rule))
+            count = newRules.length
+            allRule.unshift(...newRules)
+        }else {
+            allRule = rules
+            count = rules.length
+        }
+        config.retentionRules = allRule
+        saveConfig(config)
+        return count;
+    }
+    window.saveRetentionRules = saveRetentionRules
     // 初始化列表（这里不要传值，没有值会自动从store中获取）
     refreshRuleList();
     // 监听bg的刷新请求

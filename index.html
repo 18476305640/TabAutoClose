@@ -6,6 +6,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>清理tabs</title>
+	<link rel="stylesheet" href="/css/index.css">
 	<script src="/js/lib/jquery-3.4.1.min.js"></script>
 	<script src="/js/common/utils.js"></script>
 	<script src="/js/common/default-config.js"></script>
@@ -15,171 +16,7 @@
 	<script src="./js/bg-call-server/server.js"></script>
 	<script src="./js/bg-call-server/bg-fun-keys.js"></script>
 	<script src="/js/main.js" type="module"></script>
-
-	<style>
-		body {
-			width: 300px;
-			border: 5px solid #fcfcfc;
-			padding: 10px;
-			margin: 0px;
-		}
-
-		#control {
-			display: flex;
-			justify-content: space-between;
-			height: 30px;
-			align-items: center;
-			margin: 10px 0px;
-		}
-
-		#control>input {
-			flex-grow: 1;
-			margin-right: 15px;
-			display: inline-block;
-		}
-
-		#control button {
-			cursor: pointer;
-			height: 33px;
-			line-height: 33px;
-		}
-
-		#control>*:nth-child(1) {
-			width: 67%;
-		}
-
-		#control>*:nth-child(2) {
-			width: 33%;
-			display: flex;
-			align-items: stretch;
-			justify-content: space-around;
-			font-weight: 700;
-			color: #a2a2a2;
-		}
-
-		.input-desc {
-			border-bottom: 2px solid #a2a2a2;
-			height: 33px;
-			line-height: 33px;
-			font-size: 10px;
-			cursor: pointer;
-		}
-
-		.item {
-			border-radius: 0px;
-			background-color: #e8e8e8;
-			color: #a2a2a2;
-			font-weight: 700;
-			padding: 3px 5px;
-			display: flex;
-			justify-content: space-between;
-			line-height: 25px;
-			height: 25px;
-			padding-left: 10px;
-
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-
-		.item>span {
-			display: inline-block;
-			width: 90%;
-			overflow: hidden;
-		}
-
-		#show {
-			height: 270px;
-			overflow: auto;
-		}
-
-		#show::-webkit-scrollbar {
-			width: 0px;
-			background: transparent;
-		}
-
-		#show span {
-			font-size: 14px;
-		}
-
-		#show button {
-			background-color: #ffffff00;
-			padding: 0px 10px;
-		}
-
-		.del {
-			float: right;
-			border: none;
-			cursor: pointer;
-		}
-
-		#msg {
-			color: #3c3c3c;
-		}
-
-		h2 {
-			background: #fff;
-			padding: 5px;
-			color: #777777;
-			text-shadow: 3px 3px #cfcfcf;
-		}
-
-		.custom-button {
-			border: unset;
-			border-radius: 2px;
-			color: #777777;
-			z-index: 1;
-			background: #e8e8e8;
-			position: relative;
-			font-weight: 1000;
-			font-size: 17px;
-			transition: all 250ms;
-			overflow: hidden;
-			font-size: 13px;
-			padding: 0px 15px;
-		}
-
-		.custom-button::before {
-			content: "";
-			position: absolute;
-			top: 0;
-			left: 0;
-			height: 100%;
-			width: 0;
-			border-radius: 2px;
-			background-color: #212121;
-			z-index: -1;
-			-webkit-box-shadow: 4px 8px 19px -3px rgba(0, 0, 0, 0.27);
-			box-shadow: 4px 8px 19px -3px rgba(0, 0, 0, 0.27);
-			transition: all 250ms;
-		}
-
-		.custom-button:hover {
-			color: #e8e8e8;
-		}
-
-		.custom-button:hover::before {
-			width: 100%;
-		}
-
-
-		input {
-			padding: 10px;
-			font-family: 'Courier New', Courier, monospace;
-			outline: none;
-			background: #e8e8e8;
-
-			border: none;
-			border-radius: 5px;
-			transition: all .5s;
-		}
-
-		input:focus {
-			background: #e8e8e8;
-			box-shadow: inset 5px 5px 17px #c8c8c8,
-				inset -5px -5px 17px #ffffff;
-		}
-	</style>
+	<script src="/js/common/import-export.js" type="module"></script>
 </head>
 
 <body>
@@ -203,11 +40,20 @@
 			延时关闭(秒)
 		</div>
 	</div>
-	<p id="msg">满足以下规则(<span class="ruleCount"></span>条)，将自动清理！</p>
+	<input type="file" id="fileInput" style="display: none;" />
+	<div class="rule-info">
+		<p id="msg">满足以下规则(<span class="ruleCount"></span>条)，将自动清理！
+		</p>
+		<p class="operation">
+			<span id="import" title="去重导入">导入</span> | <span id="export" title="将所有规则导出">导出</span>
+		</p>
+	</div>
+
 	<div id="show">
 	</div>
 
 
 </body>
+
 
 </html>

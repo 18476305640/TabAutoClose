@@ -48,7 +48,7 @@ $(function () {
         $("#show .loading").remove();
         isLoading = false;
     }
-    async function refreshRuleList({ dataList, keyword, maxShowCount = 10, isNextPageRefresh = false } = {}) {
+    async function refreshRuleList({ dataList, keyword, maxShowCount = 30, isNextPageRefresh = false } = {}) {
         if(!refreshRuleListPreProcess({isNextPageRefresh})) return;
         try {
             // 如果是下页刷新，则增加maxShowCount

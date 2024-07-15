@@ -5,7 +5,7 @@ body {
     margin: 0px;
 }
 
-#control {
+.config-item {
     display: flex;
     justify-content: space-between;
     height: 30px;
@@ -13,23 +13,23 @@ body {
     margin: 10px 0px;
 }
 
-#control>input {
+.config-item>input {
     flex-grow: 1;
     margin-right: 15px;
     display: inline-block;
 }
 
-#control button {
+.config-item button {
     cursor: pointer;
     height: 33px;
     line-height: 33px;
 }
 
-#control>*:nth-child(1) {
+.config-item>*:nth-child(1) {
     width: 67%;
 }
 
-#control>*:nth-child(2) {
+.config-item>*:nth-child(2) {
     width: 33%;
     display: flex;
     align-items: stretch;
@@ -46,10 +46,16 @@ body {
     cursor: pointer;
 }
 
-.item {
+
+
+#show {
+    height: 280px;
+    overflow: auto;
+}
+#show > .item {
     border-radius: 0px;
     background-color: #e8e8e8;
-    color: #a2a2a2;
+    color: #a2a2a2; 
     font-weight: 700;
     padding: 3px 5px;
     display: flex;
@@ -57,37 +63,41 @@ body {
     line-height: 25px;
     height: 25px;
     padding-left: 10px;
+    margin: 0 0 10px;
 
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.item>span {
+#show > .item > span {
     display: inline-block;
     width: 90%;
     overflow: hidden;
+    font-size: 14px;
 }
-
-#show {
-    height: 270px;
-    overflow: auto;
-}
-
 #show::-webkit-scrollbar {
     width: 0px;
     background: transparent;
-}
-
-#show span {
-    font-size: 14px;
 }
 
 #show button {
     background-color: #ffffff00;
     padding: 0px 10px;
 }
-
+#show .loading {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: #a2a2a2;
+}
+#show .completed {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: #a2a2a2;
+    margin: 0 0;
+}
 .del {
     float: right;
     border: none;
@@ -100,7 +110,10 @@ body {
     display: flex;
     justify-content: space-between;
 }
-.rule-info #import,#export{
+
+.rule-info #import,
+#export,
+#search-rule {
     cursor: pointer;
 }
 
@@ -165,4 +178,44 @@ input:focus {
     background: #e8e8e8;
     box-shadow: inset 5px 5px 17px #c8c8c8,
         inset -5px -5px 17px #ffffff;
+}
+
+#search {
+    /* display: flex;*/
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    background-color: #e8e8e8;
+    height: 30px;
+    padding-left: 5px;
+}
+
+#search>input {
+    display: inline-block;
+    border-radius: 5px;
+    height: 16px;
+    padding: 5px;
+    background-color: transparent;
+    border: 1px solid #a2a2a2;
+    transition: all .5s;
+    flex-grow: 1;
+    border: none;
+}
+
+#tis,
+.operation {
+    white-space: nowrap;
+    /*文本无法选中*/
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.search-btn {
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 15px;
+    font-weight: bold;
+    color: #777777;
 }

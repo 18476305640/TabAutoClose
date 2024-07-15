@@ -205,6 +205,7 @@ async function removeRulesCore() {
     await setStorePlus(ConfigKeys.TC_CONFIG,config)
     // 重新刷新tab状态
     debounceRefreshState()
+    // 删除通知更新列表-暂无需实现（仅保存时需要）
 }
 const refreshDebounceRemoveRules = debounce(removeRulesCore,1000);
 function debounceRemoveRules(rule) {
@@ -236,5 +237,5 @@ registerBGFun(bgFunKeys.setStorePlus,async (key,value)=>{
     if(key === ConfigKeys.TC_CONFIG) debounceRefreshState()
     return result;
 })
-registerBGFun(bgFunKeys.refreshDelayedValue,Delayed.directRefreshValue)
 registerBGFun(bgFunKeys.debounceRemoveRules,debounceRemoveRules)
+registerBGFun(bgFunKeys.refreshDelayedValue,Delayed.directRefreshValue)

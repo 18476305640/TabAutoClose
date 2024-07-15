@@ -1,4 +1,5 @@
-window.onload = function() {
+
+$(()=>{
     let fileInput = document.getElementById('fileInput');
     let importButton = document.getElementById("import");
     let exportButton = document.getElementById("export");
@@ -48,4 +49,4 @@ window.onload = function() {
         linkElement.setAttribute('download', `TabAutoClose导出的规则-${allRule.length}条.json`);
         linkElement.click();
     }
-};
+})

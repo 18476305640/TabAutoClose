@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TabAutoClose",
-  "version": "2.9",
+  "version": "2.9.1",
   "description": "清理用户指定可清理的标签",
   "author": "zhuangjie",
   "icons": {

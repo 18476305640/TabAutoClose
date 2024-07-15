@@ -109,6 +109,9 @@ body {
     color: #3c3c3c;
     display: flex;
     justify-content: space-between;
+    margin-bottom: 11px;
+    height: 33px;
+    align-items: center;
 }
 
 .rule-info #import,
